@@ -43,6 +43,8 @@ const NewAppDialog = ({ show, onSuccess, onClose }: NewAppDialogProps) => {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [emoji, setEmoji] = useState({ icon: '🤖', icon_background: '#FFEAD5' })
 
+  const [desc, setDesc] = useState('')
+
   const mutateApps = useContextSelector(AppsContext, state => state.mutateApps)
 
   const { data: templates, mutate } = useSWR({ url: '/app-templates' }, fetchAppTemplates)
@@ -82,6 +84,7 @@ const NewAppDialog = ({ show, onSuccess, onClose }: NewAppDialogProps) => {
     try {
       const app = await createApp({
         name,
+        description: desc,
         icon: emoji.icon,
         icon_background: emoji.icon_background,
         mode: isWithTemplate ? templates.data[selectedTemplateIndex].mode : newAppMode!,
@@ -99,7 +102,7 @@ const NewAppDialog = ({ show, onSuccess, onClose }: NewAppDialogProps) => {
       notify({ type: 'error', message: t('app.newApp.appCreateFailed') })
     }
     isCreatingRef.current = false
-  }, [isWithTemplate, newAppMode, notify, router, templates, selectedTemplateIndex, emoji])
+  }, [isWithTemplate, newAppMode, desc, notify, router, templates, selectedTemplateIndex, emoji])
 
   return <>
     {showEmojiPicker && <EmojiPicker
@@ -122,7 +125,7 @@ const NewAppDialog = ({ show, onSuccess, onClose }: NewAppDialogProps) => {
         </>
       }
     >
-      <div className='overflow-y-auto'>
+      <div>
         <div className={style.newItemCaption}>
           <h3 className='inline'>{t('app.newApp.captionAppType')}</h3>
           {isWithTemplate && (
@@ -210,6 +213,16 @@ const NewAppDialog = ({ show, onSuccess, onClose }: NewAppDialogProps) => {
             <input ref={nameInputRef} className='h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow' placeholder={t('app.appNamePlaceholder') || ''} />
           </div>
         </div>
+
+        <div className={classNames(style.newItemCaption, 'mt-4 !mb-0')}>{t('appOverview.overview.appInfo.settings.webDesc')}</div>
+        <p className={'leading-[18px] text-xs font-normal text-gray-500'}>{t('appOverview.overview.appInfo.settings.webDescTip')}</p>
+        <textarea
+          rows={3}
+          className={'mt-2 pt-2 pb-2 px-3 rounded-lg bg-gray-100 w-full text-gray-900 leading-5 text-sm font-normal'}
+          value={desc}
+          onChange={e => setDesc(e.target.value)}
+          placeholder={t('appOverview.overview.appInfo.settings.webDescPlaceholder') as string}
+        />
 
         {
           !isWithTemplate && (
