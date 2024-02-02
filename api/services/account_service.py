@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional
 from constants.languages import languages, language_timezone_mapping
 from events.tenant_event import tenant_was_created
 from extensions.ext_redis import redis_client
-from flask import current_app, session
+from flask import current_app
 from libs.helper import get_remote_ip
 from libs.passport import PassportService
 from libs.password import compare_password, hash_password
@@ -23,7 +23,8 @@ from services.errors.account import (AccountAlreadyInTenantError, AccountLoginEr
                                      NoPermissionError, RoleAlreadyAssignedError, TenantNotFound)
 from sqlalchemy import func
 from tasks.mail_invite_member_task import send_invite_member_mail_task
-from werkzeug.exceptions import Forbidden, Unauthorized
+from werkzeug.exceptions import Forbidden
+from sqlalchemy import exc
 
 
 def _create_tenant_for_account(account) -> Tenant:
@@ -257,18 +258,28 @@ class TenantService:
     def switch_tenant(account: Account, tenant_id: int = None) -> None:
         """Switch the current workspace for the account"""
 
-        TenantAccountJoin.query.filter_by(account_id=account.id).update({'current': False})
-        tenant_account_join = TenantAccountJoin.query.filter_by(account_id=account.id, tenant_id=tenant_id).first()
+        # Ensure tenant_id is provided
+        if tenant_id is None:
+            raise ValueError("Tenant ID must be provided.")
 
-        # Check if the tenant exists and the account is a member of the tenant
+        tenant_account_join = TenantAccountJoin.query.filter_by(account_id=account.id, tenant_id=tenant_id).first()
         if not tenant_account_join:
             raise AccountNotLinkTenantError("Tenant not found or account is not a member of the tenant.")
-        else:
-            tenant_account_join.current = True
-            db.session.commit()
+        else: 
+            with db.session.begin_nested():
+                try:
+                    # Update only the records that are not currently the selected tenant to False
+                    TenantAccountJoin.query.filter_by(account_id=account.id).filter(TenantAccountJoin.tenant_id != tenant_id).update({'current': False})
+                    tenant_account_join.current = True
 
-        # Set the current tenant for the account
-        account.current_tenant_id = tenant_account_join.tenant_id
+                    # Set the current tenant for the account
+                    account.current_tenant_id = tenant_account_join.tenant_id
+
+                    # Commit the outer transaction
+                    db.session.commit()
+                except exc.SQLAlchemyError as e:
+                    db.session.rollback()  # Ensures that any partial changes are rolled back
+                    raise e  # It's often useful to re-raise the original exception after handling it
 
     @staticmethod
     def get_tenant_members(tenant: Tenant) -> List[Account]:
