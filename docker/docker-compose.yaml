@@ -201,7 +201,8 @@ services:
 
   # Frontend web application.
   web:
-    image: langgenius/dify-web:0.5.3
+    #image: langgenius/dify-web:0.5.3
+    image: yz181x/dify-web:tag
     restart: always
     environment:
       EDITION: SELF_HOSTED
@@ -309,4 +310,4 @@ services:
       - api
       - web
     ports:
-      - "80:80"
+      - "8000:80"
