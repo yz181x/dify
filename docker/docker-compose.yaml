@@ -125,8 +125,8 @@ services:
       # Mount the storage directory to the container, for storing user files.
       - ./volumes/app/storage:/app/api/storage
     # uncomment to expose dify-api port to host
-    # ports:
-    #   - "5001:5001"
+    ports:
+      - "5001:5001"
 
   # worker service
   # The Celery worker for processing the queue.
@@ -204,7 +204,7 @@ services:
   # Frontend web application.
   web:
     #image: langgenius/dify-web:0.5.3
-    image: yz181x/dify-web:tag
+    image: yz181x/dify-web:240221
     restart: always
     environment:
       EDITION: SELF_HOSTED
