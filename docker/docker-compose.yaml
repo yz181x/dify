@@ -209,7 +209,7 @@ services:
   # Frontend web application.
   web:
     #image: langgenius/dify-web:0.5.3
-    image: yz181x/dify-web:240222-0.5.6
+    image: yz181x/dify-web:240222-0.5.6-2
     restart: always
     environment:
       EDITION: SELF_HOSTED
